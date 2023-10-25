@@ -2,7 +2,7 @@
 
 
 # Import packages
-using JuMP, GLPK, LinearAlgebra
+using JuMP, GLPK, LinearAlgebra, Plots
 
 
 # Knapsack problem
@@ -20,15 +20,21 @@ n = 100
 # Initialize the Lagrange multipliers
 u = ones(1,n)
 
+# Initialize vectors for storage
+z_u = zeros(1,n)
+
 # Define 0 < pi < 2
 pi = 1
+
+# Define the upper bound solution
+z_ub = 1000 # to be found
 
 # Define model
 model = Model(GLPK.Optimizer)
 
 @variable(model, x[1:3], Bin)
 
-for t in 1:n
+for t in 1:(n-1)
 
     @objective(model, Min, sum(c[i]*x[i] for i=1:3) + u[t]*(d-sum(D[i]*x[i] for i=1:3)))
 
@@ -37,13 +43,13 @@ for t in 1:n
 
     # Solution
     xsol = JuMP.value.(x)
-    z_u = JuMP.objective_value(model)
+    z_u[t] = JuMP.objective_value(model)
 
     # Compute the current violation of the 'complicated' constraints
     s = d-(D*xsol)[1]
 
     # Compute T
-    T = pi*(z_ub - z_u)/s
+    T = pi*(z_ub - z_u[t])/s
 
     # Iterate u
     u[t+1] = max(0,u[t]+T*s)
@@ -54,15 +60,10 @@ end
 
 
 
+# Plot
+plot(u,z_u)
 
-
-
-
-
-
-
-
-
-
+t = range(1,100, length=100)
+plot(t, u)
 
 
