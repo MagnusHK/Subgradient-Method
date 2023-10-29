@@ -18,16 +18,16 @@ d = 5.0
 n = 100
 
 # Initialize the Lagrange multipliers
-u = ones(1,n)
+u = zeros(1,n)
 
 # Initialize vectors for storage
 z_u = zeros(1,n)
 
 # Define 0 < pi < 2
-pi = 1
+pi = 1/2
 
 # Define the upper bound solution
-z_ub = 1000 # to be found
+z_ub = 20 # to be found
 
 # Define model
 model = Model(GLPK.Optimizer)
@@ -36,7 +36,7 @@ model = Model(GLPK.Optimizer)
 
 for t in 1:(n-1)
 
-    @objective(model, Min, sum(c[i]*x[i] for i=1:3) + u[t]*(d-sum(D[i]*x[i] for i=1:3)))
+    @objective(model, Max, sum(c[i]*x[i] for i=1:3) + u[t]*(d-sum(D[i]*x[i] for i=1:3)))
 
     # Solve Lagrangian subproblem IP(u(t))
     JuMP.optimize!(model)
@@ -49,7 +49,7 @@ for t in 1:(n-1)
     s = d-(D*xsol)[1]
 
     # Compute T
-    T = pi*(z_ub - z_u[t])/s
+    T = pi*(z_ub - z_u[t])/norm(s, 2)
 
     # Iterate u
     u[t+1] = max(0,u[t]+T*s)
@@ -61,9 +61,14 @@ end
 
 
 # Plot
-plot(u,z_u)
+plot1 = plot(range(0,n,length=n),transpose(z_u), label="z(u)", title="Lagrangian relaxation", show=true, marker=(:circle,5));
+xlabel!("u")
+ylabel!("z(u)")
 
-t = range(1,100, length=100)
-plot(t, u)
 
 
+plot2 = plot(transpose(u), label="Lagrangian multiplier, u", title="Lagrangian multiplier as function of iteration number", show=true, marker=(:circle,5));
+xlabel!("Iteration")
+ylabel!("u")
+
+plot(plot1, plot2, layout=(2,1), legend=false)
